@@ -1,16 +1,20 @@
 package unsafer
 
 import (
-	"reflect"
-	"unsafe"
+	"debug/gosym"
+	"github.com/bouk/symme"
+	"sync"
 )
 
-var DMA []byte
+var table *gosym.Table
+var tableOnce sync.Once
 
-func init() {
-	DMA = *(*[]byte)(unsafe.Pointer(&reflect.SliceHeader{
-		Data: 0,
-		Len:  (1 << 63) - 1,
-		Cap:  (1 << 63) - 1,
-	}))
+func inittable() {
+	tableOnce.Do(func() {
+		var err error
+		table, err = symme.Table()
+		if err != nil {
+			panic(err)
+		}
+	})
 }
