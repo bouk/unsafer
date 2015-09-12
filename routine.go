@@ -95,7 +95,7 @@ type Goroutine struct {
 	Stackguard1 uintptr // offset known to liblink
 
 	Panic      uintptr // innermost panic - offset known to liblink
-	Defer      uintptr // innermost defer
+	Defer      *Defer  // innermost defer
 	M          *M      // current m; offset known to arm liblink
 	StackAlloc uintptr // stack allocation is [stack.lo,stack.lo+stackAlloc)
 	Sched      GoBuf
@@ -151,10 +151,6 @@ func TracebackOthers() {
 func GetG() *Goroutine
 
 func init() {
-	inittable()
-
-	tboLocation := uintptr(table.LookupFunc("runtime.tracebackothers").Value)
-	*(*uintptr)(unsafe.Pointer(&tracebackothers)) = uintptr(unsafe.Pointer(&tboLocation))
-	systemstackLocation := uintptr(table.LookupFunc("runtime.systemstack").Value)
-	*(*uintptr)(unsafe.Pointer(&systemstack)) = uintptr(unsafe.Pointer(&systemstackLocation))
+	InsertFunction("runtime.tracebackothers", &tracebackothers)
+	InsertFunction("runtime.systemstack", &systemstack)
 }
