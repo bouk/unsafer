@@ -4,19 +4,13 @@ import (
 	"runtime"
 )
 
-var stopTheWorld func(string)
-var startTheWorld func()
-
-func StopTheWorld(reason string) {
-	stopTheWorld(reason)
-}
-
-func StartTheWorld() {
-	startTheWorld()
-}
+var (
+	StopTheWorld  func(string)
+	StartTheWorld func()
+)
 
 func init() {
 	runtime.Stack(nil, false)
-	InsertFunction("runtime.stopTheWorld", &stopTheWorld)
-	InsertFunction("runtime.startTheWorld", &startTheWorld)
+	InsertFunction("runtime.stopTheWorld", &StopTheWorld)
+	InsertFunction("runtime.startTheWorld", &StartTheWorld)
 }

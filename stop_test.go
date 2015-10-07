@@ -17,7 +17,7 @@ func TestStop(t *testing.T) {
 
 	for j := 0; j < 100000000; j++ {
 		if !success {
-			t.Error("Other go routine woke up")
+			t.Error("Other goroutine woke up")
 			return
 		}
 	}

@@ -81,21 +81,13 @@ type M struct {
 }
 
 type Goroutine struct {
-	// Stack parameters.
-	// stack describes the actual stack memory: [stack.lo, stack.hi).
-	// stackguard0 is the stack pointer compared in the Go stack growth prologue.
-	// It is stack.lo+StackGuard normally, but can be StackPreempt to trigger a preemption.
-	// stackguard1 is the stack pointer compared in the C stack growth prologue.
-	// It is stack.lo+StackGuard on g0 and gsignal stacks.
-	// It is ~0 on other goroutine stacks, to trigger a call to morestackc (and crash).
 	Stack struct {
 		Lo, Hi uintptr
-	} // offset known to runtime/cgo
-	Stackguard0 uintptr // offset known to liblink
-	Stackguard1 uintptr // offset known to liblink
+	}
+	Stackguard0, Stackguard1 uintptr
 
-	Panic      uintptr // innermost panic - offset known to liblink
-	Defer      *Defer  // innermost defer
+	Panic      uintptr
+	Defer      *Defer
 	M          *M      // current m; offset known to arm liblink
 	StackAlloc uintptr // stack allocation is [stack.lo,stack.lo+stackAlloc)
 	Sched      GoBuf
@@ -150,7 +142,31 @@ func TracebackOthers() {
 
 func GetG() *Goroutine
 
+var (
+	allgs    *[]*Goroutine
+	lock     func(l uintptr)
+	unlock   func(l uintptr)
+	allglock uintptr
+)
+
+func AllGs(f func(*Goroutine)) {
+	lock(allglock)
+	for _, g := range *allgs {
+		f(g)
+	}
+	unlock(allglock)
+}
+
 func init() {
 	InsertFunction("runtime.tracebackothers", &tracebackothers)
 	InsertFunction("runtime.systemstack", &systemstack)
+	InsertFunction("runtime.lock", &lock)
+	InsertFunction("runtime.unlock", &unlock)
+	for _, sym := range syms {
+		if sym.Name == "runtime.allgs" {
+			allgs = (*[]*Goroutine)(unsafe.Pointer(uintptr(sym.Addr)))
+		} else if sym.Name == "runtime.allglock" {
+			allglock = uintptr(sym.Addr)
+		}
+	}
 }
